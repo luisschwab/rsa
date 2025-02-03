@@ -1,3 +1,9 @@
+mod keygen;
+
+use keygen::*;
+
 fn main() {
-    println!("Hello, world!");
+    let key_pair = generate_keypair();
+
+    println!("{}", key_pair);
 }
