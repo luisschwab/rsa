@@ -78,8 +78,9 @@ fn generate_prime() -> BigUint {
     }
 }
 
-/// Determines P(prime) via the Miller-Rabin test
+/// Determines primality via the Miller-Rabin test
 /// The probability of error `P(Err)` is 4^-k, where `k` is the number of rounds
+/// With k = 64, P(Err) = 2.94 * 10^-39
 fn miller_rabin(n: &BigUint) -> bool {
     let k = ROUNDS;
 
