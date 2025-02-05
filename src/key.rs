@@ -17,8 +17,8 @@
 //!   - Pubkey: (n, e)
 //!   - Privkey: (n, d)
 
-const PRIME_LENGHT: u64 = 512; // in bits
-const ROUNDS: u32 = 64;
+pub const PRIME_LENGHT: u64 = 1024; // in bits
+pub const ROUNDS: u32 = 64;
 // `e` is defined elsewhere since rust won't allow heap-allocated constants
 
 use num_bigint::{BigInt, BigUint, RandBigInt};
@@ -62,7 +62,7 @@ pub fn generate_keypair() -> KeyPair {
     KeyPair { n, e, d }
 }
 
-/// Generates a prime of PRIME_LENGHT bits
+/// Generate a prime of `PRIME_LENGHT` bits
 fn generate_prime() -> BigUint {
     let mut rng = thread_rng();
 
@@ -79,7 +79,7 @@ fn generate_prime() -> BigUint {
 }
 
 /// Determines primality via the Miller-Rabin test
-/// The probability of error `P(Err)` is 4^-k, where `k` is the number of rounds
+/// The probability of error P(Err) is 4^-k, where k is the number of rounds
 /// With k = 64, P(Err) = 2.94 * 10^-39
 fn miller_rabin(n: &BigUint) -> bool {
     let k = ROUNDS;

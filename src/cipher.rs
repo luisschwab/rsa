@@ -8,9 +8,9 @@
 //!
 //! Padding and unpadding rely on the cancelling property of XORing something twice
 
-use sha2::{Sha256, Digest};
-use rand::RngCore;
 use num_bigint::BigUint;
+use rand::RngCore;
+use sha2::{Digest, Sha256};
 
 /// message to ciphertext
 /// c = m^e mod n
@@ -18,9 +18,9 @@ pub fn cipher(message: &[u8], n: &BigUint, e: &BigUint) -> Result<Vec<u8>, &'sta
     let message = BigUint::from_bytes_be(message);
 
     if message >= *n {
-        return Err("message lenght must be < than `n`");
+        return Err("message lenght must be < than n");
     }
-    
+
     let ciphertext = (message.modpow(e, n)).to_bytes_be();
 
     Ok(ciphertext)
@@ -32,11 +32,11 @@ pub fn decipher(ciphertext: &[u8], n: &BigUint, d: &BigUint) -> Result<Vec<u8>, 
     let ciphertext = BigUint::from_bytes_be(ciphertext);
 
     if ciphertext >= *n {
-        return Err("ciphertext lenght must be < than `n`");
+        return Err("ciphertext lenght must be < than n");
     }
 
-    let mut message = (ciphertext.modpow(d, n)).to_bytes_be(); 
-    
+    let mut message = (ciphertext.modpow(d, n)).to_bytes_be();
+
     if message.len() < (n.bits() as usize + 7) / 8 {
         let mut padded = vec![0; 1];
         padded.extend(message);
@@ -70,15 +70,17 @@ fn mgf1(seed: &[u8], lenght: usize) -> Vec<u8> {
 pub fn oaep_pad(message: &[u8], label: &[u8], k: usize) -> Result<Vec<u8>, &'static str> {
     // since we're using SHA-256, the hash lenght is 32 bytes
     let hash_len = 32;
-    
-    // the maximum lenght of the message is calculated via
-    // `message_len` <= `k` - 2 * `hash_len` - 2, where
-    // `k` := RSA lenght (mod n)
-    // `hash_len` := lenght of hash function output
-    let max_message_len = k - 2*hash_len - 2;
 
-    if message.len() >  max_message_len {
-        return Err("Message is {message.len()} bytes long. The maximum lenght is {max_message_len} bytes.");
+    // the maximum lenght of the message is calculated via
+    // message_len <= k - 2 * hash_len - 2, where
+    // k := RSA lenght (mod n)
+    // hash_len := lenght of hash function output
+    let max_message_len = k - 2 * hash_len - 2;
+
+    if message.len() > max_message_len {
+        return Err(
+            "Message is {message.len()} bytes long. The maximum lenght is {max_message_len} bytes.",
+        );
     }
 
     let mut hasher = Sha256::new();
@@ -120,12 +122,16 @@ pub fn oaep_unpad(encoded_message: &[u8], label: &[u8]) -> Result<Vec<u8>, &'sta
     let hash_len = 32;
     let k = encoded_message.len();
 
-    if encoded_message[0] != 0 { return Err("Decoding error: first byte is not 0"); }
+    if encoded_message[0] != 0 {
+        return Err("Decoding error: first byte is not 0");
+    }
 
-    if k < 2 * hash_len + 2 { return Err("Decoding error: ?"); } 
+    if k < 2 * hash_len + 2 {
+        return Err("Decoding error: ?");
+    }
 
-    let seed_masked = &encoded_message[1..hash_len+1];
-    let db_masked = &encoded_message[hash_len+1..];
+    let seed_masked = &encoded_message[1..hash_len + 1];
+    let db_masked = &encoded_message[hash_len + 1..];
 
     // seed unmasking [ mgf(mgf(x)) = x ]
     let seed_mask = mgf1(db_masked, hash_len);
@@ -145,8 +151,10 @@ pub fn oaep_unpad(encoded_message: &[u8], label: &[u8]) -> Result<Vec<u8>, &'sta
     let mut hasher = Sha256::new();
     hasher.update(label);
     let label_hash = hasher.finalize();
-    
-    if db[..hash_len] != label_hash[..] { return Err("Decoding error: label hashes don't match."); }
+
+    if db[..hash_len] != label_hash[..] {
+        return Err("Decoding error: label hashes don't match.");
+    }
 
     // find the message
     let mut message_start = hash_len;
@@ -169,7 +177,7 @@ pub fn oaep_unpad(encoded_message: &[u8], label: &[u8]) -> Result<Vec<u8>, &'sta
 #[cfg(test)]
 mod tests {
     use super::*;
-     
+
     #[test]
     fn test_cipher() {
         let m0 = BigUint::from(42u32).to_bytes_be();
@@ -185,7 +193,7 @@ mod tests {
         let n1 = BigUint::from(3233u32);
         let c1 = BigUint::from(3232u32);
         assert_eq!(cipher(&m1, &n1, &e1).unwrap(), c1.to_bytes_be());
-        
+
         // must return an Err (m > n)
         let m2 = BigUint::from(3235u32).to_bytes_be();
         let e2 = BigUint::from(17u32);
@@ -194,7 +202,7 @@ mod tests {
         let _c2 = BigUint::from(3232u32);
         assert!(cipher(&m2, &n2, &e2).is_err());
     }
-    
+
     #[test]
     fn test_decipher() {
         let c0 = BigUint::from(2557u32).to_bytes_be();
@@ -208,7 +216,7 @@ mod tests {
         let n1 = BigUint::from(3233u32);
         let m1 = BigUint::from(3232u32);
         assert_eq!(decipher(&c1, &n1, &d1).unwrap(), m1.to_bytes_be());
-        
+
         // must return an Err (c > n)
         let c0 = BigUint::from(5000u32).to_bytes_be();
         let d0 = BigUint::from(2753u32);
@@ -222,7 +230,7 @@ mod tests {
         let msg = b"test";
         let label = b"label";
         let k = 128;
-        
+
         let padded = oaep_pad(msg, label, k).unwrap();
         assert_eq!(padded.len(), k);
         let unpadded = oaep_unpad(&padded, label).unwrap();
