@@ -12,6 +12,9 @@ use num_bigint::BigUint;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
 
+// the default value for the OAEP label is an empty string
+pub const LABEL: &[u8] = &[0x21];
+
 /// message to ciphertext
 /// c = m^e mod n
 pub fn cipher(message: &[u8], n: &BigUint, e: &BigUint) -> Result<Vec<u8>, &'static str> {
@@ -71,7 +74,7 @@ pub fn oaep_pad(message: &[u8], label: &[u8], k: usize) -> Result<Vec<u8>, &'sta
     // since we're using SHA-256, the hash lenght is 32 bytes
     let hash_len = 32;
 
-    // the maximum lenght of the message is calculated via
+    // the maximum lenght of the message is
     // message_len <= k - 2 * hash_len - 2, where
     // k := RSA lenght (mod n)
     // hash_len := lenght of hash function output
